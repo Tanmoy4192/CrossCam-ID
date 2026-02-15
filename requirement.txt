@@ -8,3 +8,4 @@ torchvision
 torchreid
 python-multipart
 gdown
+tensorboard
