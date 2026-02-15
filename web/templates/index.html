@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CrossCam ID Analyzer</title>
+<style>
+body {
+    font-family: Arial, sans-serif;
+    margin: 20px;
+    background: #f5f7fa;
+}
+
+h2 {
+    text-align: center;
+}
+
+form {
+    background: white;
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+
+button {
+    padding: 10px 16px;
+    background: #007bff;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+button:hover {
+    background: #0056b3;
+}
+
+#result {
+    margin-top: 20px;
+}
+
+.person-block {
+    background: white;
+    padding: 12px;
+    margin-bottom: 15px;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.preview-row {
+    margin: 6px 0;
+}
+
+.preview-row img {
+    margin-left: 10px;
+    border-radius: 5px;
+}
+
+@media (max-width: 600px) {
+    img {
+        width: 90px !important;
+    }
+}
+</style>
+</head>
+<body>
+
+<h2>Video Person Analyzer</h2>
+
+<form id="uploadForm">
+    <div>
+        Upload Video 1 (required):<br>
+        <input type="file" name="video1" required>
+    </div>
+    <br>
+
+    <div>
+        Upload Video 2 (optional):<br>
+        <input type="file" name="video2">
+    </div>
+    <br>
+
+    <button type="submit">Analyze</button>
+</form>
+
+<hr>
+<div id="result"></div>
+
+<script>
+document.getElementById("uploadForm").addEventListener("submit", async function(e) {
+    e.preventDefault();
+
+    const formData = new FormData(this);
+
+    document.getElementById("result").innerHTML = "Processing...";
+
+    const res = await fetch("/analyze", {
+        method: "POST",
+        body: formData
+    });
+
+    const data = await res.json();
+    const out = document.getElementById("result");
+    out.innerHTML = "";
+
+    // ---- Single video result ----
+    if (data.video === "single") {
+        if (data.recurring_persons.length === 0) {
+            out.innerHTML = "No recurring persons found.";
+            return;
+        }
+
+        data.recurring_persons.forEach(p => {
+            const div = document.createElement("div");
+            div.innerHTML =
+                `<h3>${p.id} appeared ${p.count} times:</h3>`;
+
+            p.appearances.forEach(a => {
+                div.innerHTML +=
+                    `<div>
+                        ${a.time}s
+                        <img src="${a.preview}" width="120" style="vertical-align:top;">
+                    </div>`;
+            });
+
+            out.appendChild(div);
+        });
+    }
+
+    // ---- Two videos result ----
+    else {
+        if (!data.same_person) {
+            out.innerHTML = "No same person found in both videos.";
+            return;
+        }
+
+        const div = document.createElement("div");
+        div.innerHTML = `<h3>Same person found: ${data.person_id}</h3>`;
+
+        div.innerHTML += "<b>Video 1:</b><br>";
+        data.appearances_video1.forEach(a => {
+            div.innerHTML +=
+                `<div>
+                    ${a.time}s
+                    <img src="${a.preview}" width="120" style="vertical-align:top;">
+                </div>`;
+        });
+
+        div.innerHTML += "<br><b>Video 2:</b><br>";
+        data.appearances_video2.forEach(a => {
+            div.innerHTML +=
+                `<div>
+                    ${a.time}s
+                    <img src="${a.preview}" width="120" style="vertical-align:top;">
+                </div>`;
+        });
+
+        out.appendChild(div);
+    }
+});
+</script>
+
+</body>
+</html>
